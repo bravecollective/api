@@ -1,0 +1,10 @@
+language: python
+python:
+  - "2.7"
+install:
+  - pip install requests
+  - pip install WebCore
+  - pip install nose coverage webtest
+  - pip install . --use-mirrors
+script: python setup.py test
+
