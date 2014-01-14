@@ -29,7 +29,7 @@ class SignedController(Controller):
             raise HTTPBadRequest("Missing headers.")
         
         try:
-            request.service = self.__service__(request.headers['X-Service']))
+            request.service = self.__service__(request.headers['X-Service'])
         except:
             log.exception("Exception attempting to load service: %s", request.headers['X-Service'])
             raise HTTPBadRequest("Unknown or invalid service identity.")
