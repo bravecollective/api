@@ -64,7 +64,7 @@ class API(object):
     
     def __getattr__(self, name):
         return API(
-                "{0}/{1}".format(self.endpoint, name),
+                '{0}/{1}'.format(self.endpoint, name),
                 self.identity,
                 self.private,
                 self.public,
@@ -73,7 +73,7 @@ class API(object):
     
     def __call__(self, *args, **kwargs):
         result = self.pool.post(
-                self.path + ( ('/' + '/'.join(args)) if args else '' ),
+                self.endpoint + ( ('/' + '/'.join(args)) if args else '' ),
                 data = kwargs,
                 auth = SignedAuth(self.identity, self.private, self.public)
             )
