@@ -14,6 +14,19 @@ from requests.auth import AuthBase
 log = __import__('logging').getLogger(__name__)
 
 
+def bunchify(data, name=None):
+    if isinstance(data, Bunch):
+        return data
+    
+    if isinstance(data, list):
+        return [bunchify(i) for i in data]
+    
+    if isinstance(data, dict):
+        return Bunch({k: bunchify(v, k) for k, v in data.iteritems()})
+    
+    return data
+
+
 class SignedAuth(AuthBase):
     def __init__(self, identity, private, public):
         self.identity = identity
@@ -81,4 +94,4 @@ class API(object):
         if not result.status_code == requests.codes.ok:
             return None
         
-        return Bunch(result.json())
+        return bunchify(result.json())
