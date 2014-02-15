@@ -86,7 +86,7 @@ class API(object):
     
     def __call__(self, *args, **kwargs):
         result = self.pool.post(
-                self.endpoint + ( ('/' + '/'.join(args)) if args else '' ),
+                self.endpoint + ( ('/' + '/'.join(unicode(arg) for arg in args)) if args else '' ),
                 data = kwargs,
                 auth = SignedAuth(self.identity, self.private, self.public)
             )
