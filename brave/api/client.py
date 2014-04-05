@@ -3,15 +3,23 @@
 from __future__ import unicode_literals
 
 import requests
+import sys
 
 from binascii import hexlify, unhexlify
 from datetime import datetime
+from hashlib import sha256
 from webob import Response
 from marrow.util.bunch import Bunch
 from requests.auth import AuthBase
 
 
 log = __import__('logging').getLogger(__name__)
+
+
+if sys.version_info[0] >= 3:
+    unistr = str
+else:
+    unistr = unicode
 
 
 def bunchify(data, name=None):
@@ -22,7 +30,11 @@ def bunchify(data, name=None):
         return [bunchify(i) for i in data]
     
     if isinstance(data, dict):
-        return Bunch({k: bunchify(v, k) for k, v in data.iteritems()})
+        if hasattr(data, 'iteritems'):
+            bunch_data = {k: bunchify(v, k) for k, v in data.iteritems()}
+        else:
+            bunch_data = {k: bunchify(v, k) for k, v in data.items()}
+        return Bunch(bunch_data)
     
     return data
 
@@ -40,7 +52,8 @@ class SignedAuth(AuthBase):
         if request.body is None:
             request.body = ''
         
-        canon = "{r.headers[date]}\n{r.url}\n{r.body}".format(r=request)
+        canon = "{r.headers[date]}\n{r.url}\n{r.body}".format(r=request).\
+                encode('utf-8')
         log.debug("Canonical request:\n\n\"{0}\"".format(canon))
         request.headers['X-Signature'] = hexlify(self.private.sign(canon))
         
@@ -54,18 +67,22 @@ class SignedAuth(AuthBase):
             return
         
         log.info("Validating %s request signature: %s", self.identity, response.headers['X-Signature'])
-        canon = "{ident}\n{r.headers[Date]}\n{r.url}\n{r.content}".format(ident=self.identity, r=response)
+        canon = "{ident}\n{r.headers[Date]}\n{r.url}\n{r.text}".format(ident=self.identity, r=response)
         log.debug("Canonical data:\n%r", canon)
         
         # Raises an exception on failure.
-        self.public.verify(unhexlify(response.headers['X-Signature']), canon)
+        self.public.verify(
+                unhexlify(response.headers['X-Signature'].encode('utf-8')),
+                canon.encode('utf-8'),
+                hashfunc=sha256
+            )
 
 
 class API(object):
     __slots__ = ('endpoint', 'identity', 'private', 'public', 'pool')
     
     def __init__(self, endpoint, identity, private, public, pool=None):
-        self.endpoint = unicode(endpoint)
+        self.endpoint = unistr(endpoint)
         self.identity = identity
         self.private = private
         self.public = public
@@ -86,7 +103,7 @@ class API(object):
     
     def __call__(self, *args, **kwargs):
         result = self.pool.post(
-                self.endpoint + ( ('/' + '/'.join(unicode(arg) for arg in args)) if args else '' ),
+                self.endpoint + ( ('/' + '/'.join(unistr(arg) for arg in args)) if args else '' ),
                 data = kwargs,
                 auth = SignedAuth(self.identity, self.private, self.public)
             )

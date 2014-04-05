@@ -34,7 +34,8 @@ class SignedController(Controller):
             log.exception("Exception attempting to load service: %s", request.headers['X-Service'])
             raise HTTPBadRequest("Unknown or invalid service identity.")
         
-        key = VerifyingKey.from_string(unhexlify(request.service.key.public), curve=NIST256p, hashfunc=sha256)
+        hex_key = request.service.key.public.encode('utf-8')
+        key = VerifyingKey.from_string(unhexlify(hex_key), curve=NIST256p, hashfunc=sha256)
         
         log.debug("Canonical request:\n\n\"{r.headers[Date]}\n{r.url}\n{r.body}\"".format(r=request))
         
