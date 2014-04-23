@@ -4,7 +4,7 @@ import sys, os
 from setuptools import setup, find_packages
 
 setup(
-        name = "Brave Core Service API Bindings",
+        name = "brave.api",
         version = "0.1",
         description = "Python API bindings for both utilizing and hosting the secure RPC mechanism.",
         author = "Alice Bevan-McGregor",
