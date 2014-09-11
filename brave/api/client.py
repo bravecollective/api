@@ -11,6 +11,7 @@ from hashlib import sha256
 from webob import Response
 from marrow.util.bunch import Bunch
 from requests.auth import AuthBase
+from ecdsa.keys import BadSignatureError
 
 
 log = __import__('logging').getLogger(__name__)
@@ -70,12 +71,23 @@ class SignedAuth(AuthBase):
         canon = "{ident}\n{r.headers[Date]}\n{r.url}\n{r.text}".format(ident=self.identity, r=response)
         log.debug("Canonical data:\n%r", canon)
         
+        date = datetime.strptime(response.headers['Date'], '%a, %d %b %Y %H:%M:%S GMT')
+        date = date - timedelta(seconds=1)
+
         # Raises an exception on failure.
-        self.public.verify(
-                unhexlify(response.headers['X-Signature'].encode('utf-8')),
-                canon.encode('utf-8'),
-                hashfunc=sha256
-            )
+        try:
+            self.public.verify(
+                    unhexlify(response.headers['X-Signature'].encode('utf-8')),
+                    canon.encode('utf-8'),
+                    hashfunc=sha256
+                )
+        except BadSignatureError:
+            canon = "{ident}\n{date}\n{r.url}\n{r.text}".format(ident=self.identity, r=response, date=date.strftime('%a, %d %b %Y %H:%M:%S GMT'))
+            self.public.verify(
+                    unhexlify(response.headers['X-Signature'].encode('utf-8')),
+                    canon.encode('utf-8'),
+                    hashfunc=sha256
+                )
 
 
 class API(object):
