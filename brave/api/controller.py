@@ -13,6 +13,8 @@ from web.core.http import HTTPBadRequest
 from web.core import request, Controller
 from web.core.templating import render
 
+from datetime import datetime, timedelta
+
 
 log = __import__('logging').getLogger(__name__)
 
@@ -38,7 +40,7 @@ class SignedController(Controller):
         key = VerifyingKey.from_string(unhexlify(hex_key), curve=NIST256p, hashfunc=sha256)
         
         log.debug("Canonical request:\n\n\"{r.headers[Date]}\n{r.url}\n{r.body}\"".format(r=request))
-        date = datetime.strptime(response.headers['Date'], '%a, %d %b %Y %H:%M:%S GMT')
+        date = datetime.strptime(request.headers['Date'], '%a, %d %b %Y %H:%M:%S GMT')
         date = date - timedelta(seconds=1)
 
         try:
