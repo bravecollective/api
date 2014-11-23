@@ -12,6 +12,7 @@ from webob import Response
 from web.core.http import HTTPBadRequest
 from web.core import request, Controller
 from web.core.templating import render
+from datetime import datetime, timedelta
 
 from datetime import datetime, timedelta
 
@@ -40,7 +41,16 @@ class SignedController(Controller):
         key = VerifyingKey.from_string(unhexlify(hex_key), curve=NIST256p, hashfunc=sha256)
         
         log.debug("Canonical request:\n\n\"{r.headers[Date]}\n{r.url}\n{r.body}\"".format(r=request))
+
         date = datetime.strptime(request.headers['Date'], '%a, %d %b %Y %H:%M:%S GMT')
+        if datetime.utcnow() - date > timedelta(seconds=15):
+            log.warning("Received request that is over 15 seconds old, rejecting.")
+            raise HTTPBadRequest("Request over 15 seconds old.")
+
+        if datetime.utcnow() - date < timedelta(seconds=0):
+            log.warning("Received a request from the future; please check this systems time for validity.")
+            raise HTTPBadRequest("Request from the future, please check your time for validity.")
+
         date = date - timedelta(seconds=1)
 
         try:

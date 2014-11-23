@@ -12,6 +12,7 @@ from webob import Response
 from marrow.util.bunch import Bunch
 from requests.auth import AuthBase
 from ecdsa.keys import BadSignatureError
+from datetime import datetime, timedelta
 
 
 log = __import__('logging').getLogger(__name__)
@@ -70,8 +71,16 @@ class SignedAuth(AuthBase):
         log.info("Validating %s request signature: %s", self.identity, response.headers['X-Signature'])
         canon = "{ident}\n{r.headers[Date]}\n{r.url}\n{r.text}".format(ident=self.identity, r=response)
         log.debug("Canonical data:\n%r", canon)
-        
+
         date = datetime.strptime(response.headers['Date'], '%a, %d %b %Y %H:%M:%S GMT')
+        if datetime.utcnow() - date > timedelta(seconds=15):
+            log.warning("Received response that is over 15 seconds old, rejecting.")
+            raise BadSignatureError
+
+        if datetime.utcnow() - date < timedelta(seconds=0):
+            log.warning("Received a request from the future; please check this systems time for validity.")
+            raise BadSignatureError
+        
         date = date - timedelta(seconds=1)
 
         # Raises an exception on failure.
