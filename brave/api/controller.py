@@ -5,13 +5,15 @@ from __future__ import unicode_literals
 from datetime import datetime
 from binascii import hexlify, unhexlify
 from hashlib import sha256
-from ecdsa.keys import SigningKey, VerifyingKey
+from ecdsa.keys import SigningKey, VerifyingKey, BadSignatureError
 from ecdsa.curves import NIST256p
 
 from webob import Response
 from web.core.http import HTTPBadRequest
 from web.core import request, Controller
 from web.core.templating import render
+
+from datetime import datetime, timedelta
 
 
 log = __import__('logging').getLogger(__name__)
@@ -38,11 +40,20 @@ class SignedController(Controller):
         key = VerifyingKey.from_string(unhexlify(hex_key), curve=NIST256p, hashfunc=sha256)
         
         log.debug("Canonical request:\n\n\"{r.headers[Date]}\n{r.url}\n{r.body}\"".format(r=request))
-        
-        if not key.verify(
+        date = datetime.strptime(request.headers['Date'], '%a, %d %b %Y %H:%M:%S GMT')
+        date = date - timedelta(seconds=1)
+
+        try:
+            key.verify(
                 unhexlify(request.headers['X-Signature']),
-                "{r.headers[Date]}\n{r.url}\n{r.body}".format(r=request)):
-            raise HTTPBadRequest("Invalid request signature.")
+                "{r.headers[Date]}\n{r.url}\n{r.body}".format(r=request))
+        except BadSignatureError:
+            try:
+                key.verify(
+                    unhexlify(request.headers['X-Signature']),
+                    "{date}\n{r.url}\n{r.body}".format(r=request, date=date.strftime('%a, %d %b %Y %H:%M:%S GMT')))
+            except BadSignatureError:
+                raise HTTPBadRequest("Invalid request signature.")
         
         return args, kw
     
