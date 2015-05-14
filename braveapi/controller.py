@@ -51,14 +51,14 @@ class SignedController(Controller):
             log.warning("Received a request from the future; please check this systems time for validity.")
             raise HTTPBadRequest("Request from the future, please check your time for validity.")
 
-        date = date - timedelta(seconds=1)
-
         try:
             key.verify(
                 unhexlify(request.headers['X-Signature']),
                 "{r.headers[Date]}\n{r.url}\n{r.body}".format(r=request))
         except BadSignatureError:
             try:
+                # Try verifying again with the time adjusted by one second.
+                date = date - timedelta(seconds=1)
                 key.verify(
                     unhexlify(request.headers['X-Signature']),
                     "{date}\n{r.url}\n{r.body}".format(r=request, date=date.strftime('%a, %d %b %Y %H:%M:%S GMT')))

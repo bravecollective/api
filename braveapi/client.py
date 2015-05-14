@@ -80,8 +80,6 @@ class SignedAuth(AuthBase):
         if datetime.utcnow() - date < timedelta(seconds=0):
             log.warning("Received a request from the future; please check this systems time for validity.")
             raise BadSignatureError
-        
-        date = date - timedelta(seconds=1)
 
         # Raises an exception on failure.
         try:
@@ -91,6 +89,8 @@ class SignedAuth(AuthBase):
                     hashfunc=sha256
                 )
         except BadSignatureError:
+            # Try verifying again with the time adjusted by one second.
+            date = date - timedelta(seconds=1)
             canon = "{ident}\n{date}\n{r.url}\n{r.text}".format(ident=self.identity, r=response, date=date.strftime('%a, %d %b %Y %H:%M:%S GMT'))
             self.public.verify(
                     unhexlify(response.headers['X-Signature'].encode('utf-8')),
