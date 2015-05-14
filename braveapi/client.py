@@ -77,7 +77,8 @@ class SignedAuth(AuthBase):
             log.warning("Received response that is over 15 seconds old, rejecting.")
             raise BadSignatureError
 
-        if datetime.utcnow() - date < timedelta(seconds=0):
+        # We allow responses 1s from the future to account for slight clock skew.
+        if datetime.utcnow() - date < timedelta(seconds=-1):
             log.warning("Received a request from the future; please check this systems time for validity.")
             raise BadSignatureError
 

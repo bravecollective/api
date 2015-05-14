@@ -47,7 +47,8 @@ class SignedController(Controller):
             log.warning("Received request that is over 15 seconds old, rejecting.")
             raise HTTPBadRequest("Request over 15 seconds old.")
 
-        if datetime.utcnow() - date < timedelta(seconds=0):
+        # We allow requests 1s from the future to account for slight clock skew.
+        if datetime.utcnow() - date < timedelta(seconds=-1):
             log.warning("Received a request from the future; please check this systems time for validity.")
             raise HTTPBadRequest("Request from the future, please check your time for validity.")
 
