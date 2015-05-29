@@ -5,7 +5,7 @@ from setuptools import setup, find_packages
 
 setup(
         name = "braveapi",
-        version = "0.2",
+        version = "0.3",
         description = "Python API bindings for both utilizing and hosting the secure RPC mechanism.",
         author = "Alice Bevan-McGregor",
         author_email = "alice@gothcandy.com",
